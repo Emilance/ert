@@ -1,12 +1,11 @@
 "use client"
-
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
 import { BiTime } from 'react-icons/bi';
 import { AiOutlineLeft } from 'react-icons/ai';
 import DesktopHeader from '../../../components/DesktopHeader';
 import Loading from '@/components/Loading';
 import ErrorModal from '@/components/ErrorModal';
-import { VerifyOTPCode, verifyEditOTPVerification } from '../../../../utils/data/endpoints';
+import { ResendOTPCode, VerifyOTPCode, verifyEditOTPVerification } from '../../../../utils/data/endpoints';
 import { getUser } from '../../../../utils/auth';
 import { useRouter } from 'next/navigation';
 import { TokenUserType } from '@/types/types';
@@ -27,9 +26,43 @@ const VerifyEditOTP = () => {
   }, []);
 
   // Countdown
+
+  const getOTPcreatedAt = ()=>{
+    if (typeof localStorage !== 'undefined') {
+   
+          // Get the value from localStorage
+          const storedValue = localStorage.getItem('erteditotptime');
+        
+          // Check if the value is not null or undefined
+          if (storedValue) {
+            // Convert the string to a Date object
+            const dateObject = new Date(storedValue);
+
+            return dateObject
+            // Check if the conversion was successful
+            if (!isNaN(dateObject.getTime())) {
+              console.log('Converted Date:', dateObject);
+            } else {
+              console.error('Invalid date format in localStorage');
+            }
+          } else {
+            return  null
+        }
+  
+    } else {
+      console.warn('localStorage is not available in this environment.');
+    
+    }
+ 
+   }
+   const now: any = getOTPcreatedAt()
   const calculateTimeLeft = () => {
-    const now = new Date();
-    const targetDate: any = new Date(now.getTime() + 60 * 60 * 1000);
+    let targetDate :any;
+    if(now){
+     targetDate =  new Date(now.getTime() + 60 * 60 * 1000)
+    }else{
+     targetDate = new Date()
+    }
     const currentDate: any = new Date();
     const difference: any = targetDate - currentDate;
     if (difference > 0) {
@@ -66,17 +99,23 @@ const VerifyEditOTP = () => {
 
     const otpString = otp.join('');
     const reqBody = { otp: otpString };
+    if (typeof localStorage !== 'undefined') {
+   
+      try {
+        const resp = await verifyEditOTPVerification(reqBody);
+        console.log(resp);
+        router.push('/paymentacct');
+      } catch (error: any) {
+        setError(error?.response?.data?.message || 'Try Again');
+        setLoading(false);
+        setErrorModal(true);
+        console.log(error);
+            }
+      } else {
+        console.warn('localStorage is not available in this environment.');
 
-    try {
-      const resp = await verifyEditOTPVerification(reqBody);
-      console.log(resp);
-      router.push('/paymentacct');
-    } catch (error: any) {
-      setError(error?.response?.data?.message || 'Try Again');
-      setLoading(false);
-      setErrorModal(true);
-      console.log(error);
-    }
+      }
+   
   };
 
   const handleChange = (index: number, value: string) => {
@@ -99,10 +138,31 @@ const VerifyEditOTP = () => {
     }
   };
 
+  
   const clearOtpInputs = () => {
     otpInputs.current.forEach((input) => (input!.value = ''));
   };
+  
+  const resendOTP = async() => {
+    setLoading(true)
+    if (typeof localStorage !== 'undefined') {
+   
+      try {
+        const resp = await ResendOTPCode()
+        localStorage.setItem('erteditotptime', resp.data.otptime);
+        setLoading(false)
+        location.reload()
+      } catch (error: any) {
+        setError( error?.response?.data?.message || "Try Again");
+        setLoading(false) 
+        setErrorModal(true)
+         console.log(error)    }
+      } else {
+        console.warn('localStorage is not available in this environment.');
 
+      }
+   
+  }
   return (
     <div className="relative bg-cover" style={{ backgroundImage: 'url("/formbg.png")' }}>
       <div className="flex items-center justify-end min-h-screen w-full">
@@ -114,7 +174,7 @@ const VerifyEditOTP = () => {
               {error && errorModal && <ErrorModal setErrorModal={setErrorModal} text={error} />}
 
               <div className="text-grey-light flex items-center justify-between mb-2 w-full h-16">
-                <a href="/">
+                <a href="/ldashboard">
                   <AiOutlineLeft size={25} className="text-green-700" />
                 </a>
                 <h2 className="text-blue-800 w-[70%] text-xl font-bold">Enter the code</h2>
@@ -130,7 +190,7 @@ const VerifyEditOTP = () => {
                     <input
                       key={index}
                       ref={(el) => (otpInputs.current[index] = el)}
-                      type="text"
+                      type="number"
                       className="bg-gray-200 text-black outline-none rounded-md p-4 text-4xl w-full text-center"
                       maxLength={1}
                       value={otp[index] || ''}
@@ -144,7 +204,7 @@ const VerifyEditOTP = () => {
                     <BiTime size={20} /> <p>{timeLeft.minutes} : {timeLeft.seconds}</p>
                   </div>
                   <p className="font-normal text-center text-sm text-grey-light mb-3">
-                    Didn't receive the OTP? <span className="text-green-700"> Resend</span>
+                    Didn't receive the OTP? <span onClick={()=> resendOTP()}  className="text-green-700"> Resend</span>
                   </p>
                   <button
                     type="submit"
