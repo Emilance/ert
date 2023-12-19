@@ -1,3 +1,5 @@
+import { type } from "os";
+
 export interface HouseType {
     _id : string;
     apartment: string;
@@ -6,6 +8,10 @@ export interface HouseType {
     location: string;
     about: string;
     features: string[];
+    bedroom : number;
+    hostelName: string;
+    status: string;
+    owner: any;
     mainFeatures: {
       light: boolean;
       school: boolean;
@@ -41,9 +47,12 @@ export interface UserType {
 
 // }
 
-export interface HouseListProps {
+export interface HouseListProp {
 houses: HouseType[];
 }
+
+export type HouseListProps =  HouseType[];
+  
 export interface  FavHouseListProps {
   favHouses: HouseType[];
 }
@@ -81,8 +90,10 @@ export type FetchedUserType = {
      bankName : string
   };
   name: string;
+
   role: string ;
   email:string ;
+  phoneNumber:number;
   firstName: string;
   lastName: string;
   emailVerified:boolean;
